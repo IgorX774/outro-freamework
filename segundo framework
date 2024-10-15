@@ -1,0 +1,272 @@
+# Criação do projeto Angular
+ng new livros-angular --routing --style=css
+
+# Acessar o diretório do projeto
+cd livros-angular
+
+# Criação das classes Livro e Editora
+ng g class Livro --skip-tests
+ng g class Editora --skip-tests
+
+# Criação dos serviços ControleEditora e ControleLivros
+ng g s ControleEditora --skip-tests
+ng g s ControleLivros --skip-tests
+
+# Criação dos componentes LivroLista e LivroDados
+ng g c LivroLista --skip-tests
+ng g c LivroDados --skip-tests
+export class Editora {
+  codEditora: number;
+  nome: string;
+}
+export class Livro {
+  codigo: number;
+  codEditora: number;
+  titulo: string;
+  resumo: string;
+  autores: string[];
+}
+import { Injectable } from '@angular/core';
+import { Editora } from './editora';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class ControleEditoraService {
+  private editoras: Array<Editora> = [
+    { codEditora: 1, nome: 'Editora A' },
+    { codEditora: 2, nome: 'Editora B' },
+    { codEditora: 3, nome: 'Editora C' },
+  ];
+
+  getEditoras(): Array<Editora> {
+    return this.editoras;
+  }
+
+  getNomeEditora(codEditora: number): string {
+    const editora = this.editoras.find((e) => e.codEditora === codEditora);
+    return editora ? editora.nome : '';
+  }
+}
+import { Injectable } from '@angular/core';
+import { Livro } from './livro';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class ControleLivrosService {
+  private livros: Array<Livro> = [
+    { codigo: 1, codEditora: 1, titulo: 'Livro A', resumo: 'Resumo A', autores: ['Autor 1'] },
+    { codigo: 2, codEditora: 2, titulo: 'Livro B', resumo: 'Resumo B', autores: ['Autor 2'] },
+    { codigo: 3, codEditora: 3, titulo: 'Livro C', resumo: 'Resumo C', autores: ['Autor 3'] },
+  ];
+
+  obterLivros(): Array<Livro> {
+    return this.livros;
+  }
+
+  incluir(livro: Livro): void {
+    livro.codigo = Math.max(...this.livros.map((l) => l.codigo)) + 1;
+    this.livros.push(livro);
+  }
+
+  excluir(codigo: number): void {
+    const index = this.livros.findIndex((l) => l.codigo === codigo);
+    if (index >= 0) {
+      this.livros.splice(index, 1);
+    }
+  }
+}
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { FormsModule } from '@angular/forms'; // Para formulários
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { LivroListaComponent } from './livro-lista/livro-lista.component';
+import { LivroDadosComponent } from './livro-dados/livro-dados.component';
+import { ControleEditoraService } from './controle-editora.service';
+import { ControleLivrosService } from './controle-livros.service';
+
+@NgModule({
+  declarations: [
+    AppComponent,
+    LivroListaComponent,
+    LivroDadosComponent,
+  ],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    FormsModule
+  ],
+  providers: [ControleEditoraService, ControleLivrosService],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de Livros</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>
+import { Component, OnInit } from '@angular/core';
+import { ControleEditoraService } from '../controle-editora.service';
+import { ControleLivrosService } from '../controle-livros.service';
+import { Livro } from '../livro';
+import { Editora } from '../editora';
+
+@Component({
+  selector: 'app-livro-lista',
+  templateUrl: './livro-lista.component.html',
+  styleUrls: ['./livro-lista.component.css'],
+})
+export class LivroListaComponent implements OnInit {
+  public editoras: Array<Editora> = [];
+  public livros: Array<Livro> = [];
+
+  constructor(
+    private servEditora: ControleEditoraService,
+    private servLivros: ControleLivrosService
+  ) {}
+
+  ngOnInit(): void {
+    this.editoras = this.servEditora.getEditoras();
+    this.livros = this.servLivros.obterLivros();
+  }
+
+  excluir = (codigo: number): void => {
+    this.servLivros.excluir(codigo);
+    this.livros = this.servLivros.obterLivros();
+  };
+
+  obterNome = (codEditora: number): string => {
+    return this.servEditora.getNomeEditora(codEditora);
+  };
+}
+<main class="container">
+  <h1>Catálogo de Livros</h1>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Título</th>
+        <th>Editora</th>
+        <th>Autores</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let livro of livros">
+        <td>{{ livro.titulo }}</td>
+        <td>{{ obterNome(livro.codEditora) }}</td>
+        <td>
+          <ul>
+            <li *ngFor="let autor of livro.autores">{{ autor }}</li>
+          </ul>
+        </td>
+        <td>
+          <button class="btn btn-danger" (click)="excluir(livro.codigo)">Excluir</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</main>
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { LivroListaComponent } from './livro-lista/livro-lista.component';
+import { LivroDadosComponent } from './livro-dados/livro-dados.component';
+
+const routes: Routes = [
+  { path: 'lista', component: LivroListaComponent },
+  { path: 'dados', component: LivroDadosComponent },
+  { path: '', redirectTo: '/lista', pathMatch: 'full' },
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule],
+})
+export class AppRoutingModule {}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container">
+    <a class="navbar-brand" href="#">Catálogo de Livros</a>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/lista">Lista de Livros</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/dados">Cadastro de Livro</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<router-outlet></router-outlet>
+import { Component, OnInit } from '@angular/core';
+import { ControleEditoraService } from '../controle-editora.service';
+import { ControleLivrosService } from '../controle-livros.service';
+import { Livro } from '../livro';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-livro-dados',
+  templateUrl: './livro-dados.component.html',
+  styleUrls: ['./livro-dados.component.css'],
+})
+export class LivroDadosComponent implements OnInit {
+  public livro: Livro = new Livro();
+  public autoresForm: string = '';
+  public editoras: Array<Editora> = [];
+
+  constructor(
+    private servEditora: ControleEditoraService,
+    private servLivros: ControleLivrosService,
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
+    this.editoras = this.servEditora.getEditoras();
+  }
+
+  incluir = (): void => {
+    this.livro.autores = this.autoresForm.split('\n');
+    this.servLivros.incluir(this.livro);
+    this.router.navigateByUrl('/lista');
+  };
+}
+<main class="container">
+  <h1>Cadastro de Livro</h1>
+  <form (submit)="incluir()" ngNativeValidate>
+    <div class="form-group">
+      <label for="titulo">Título</label>
+      <input type="text" class="form-control" [(ngModel)]="livro.titulo" name="titulo" required>
+    </div>
+
+    <div class="form-group">
+      <label for="resumo">Resumo</label>
+      <textarea class="form-control" [(ngModel)]="livro.resumo" name="resumo"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="editoras">Editora</label>
+      <select class="form-control" [(ngModel)]="livro.codEditora" name="editoras" required>
+        <option *ngFor="let editora of editoras" [value]="editora.codEditora">{{ editora.nome }}</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="autores">Autores</label>
+      <textarea class="form-control" [(ngModel)]="autoresForm" name="autores"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Incluir</button>
+  </form>
+</main>
+
+'''ng serve'''
